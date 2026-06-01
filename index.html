@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualisasi Kelulusan Ujian</title>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #4f46e5;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+            text-align: center;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            color: #9ca3af;
+            margin-bottom: 30px;
+            font-size: 1rem;
+        }
+
+        /* Tampilan Tombol Hitungan Mundur */
+        .countdown-btn {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+            margin-bottom: 30px;
+            cursor: not-allowed;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+
+        /* Tampilan Tombol saat Hitungan Mundur Selesai */
+        .countdown-btn.active {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            width: 100%;
+            max-width: 1200px;
+            perspective: 1000px;
+        }
+
+        .card {
+            background-color: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            font-family: 'Courier New', Courier, monospace;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            color: #64748b;
+        }
+
+        .card.shuffling {
+            color: #f59e0b;
+            border-color: #f59e0b;
+            animation: pulse 0.1s infinite alternate;
+        }
+
+        .card.revealed {
+            background-color: #064e3b;
+            border-color: #10b981;
+            color: #10b981;
+            text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+            animation: popIn 0.5s ease-out forwards;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.98); opacity: 0.8; }
+            100% { transform: scale(1.02); opacity: 1; }
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8) rotateX(-20deg); opacity: 0; }
+            100% { transform: scale(1) rotateX(0deg); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Daftar Nomor Peserta Lulus</h1>
+    <div class="subtitle" id="statusText">Menunggu hitungan mundur dimulai...</div>
+
+    <!-- Tombol otomatis yang akan berubah teksnya -->
+    <button class="countdown-btn" id="countdownBtn">Mulai dalam 10</button>
+
+    <div class="grid-container" id="gridContainer"></div>
+
+    <script>
+        const nomorPeserta = [
+            "02-003-001-8", "02-003-002-7", "02-003-001-9", "02-003-002-0", 
+            "02-003-001-10", "02-003-002-0", "02-003-001-11", "02-003-002-0", 
+            "02-003-001-12", "02-003-002-11", "02-003-001-13", "02-003-002-12", 
+            "02-003-001-14", "02-003-002-13", "02-003-001-15", "02-003-002-0", 
+            "02-003-001-16", "02-003-002-15", "02-003-001-17", "02-003-002-16", 
+            "02-003-001-18", "02-003-002-0", "02-003-001-0", "02-003-002-0", 
+            "02-003-001-0", "02-003-002-19", "02-003-001-21", "02-003-002-0", 
+            "02-003-001-22", "02-003-002-0", "02-003-001-23", "02-003-002-22", 
+            "02-003-001-24", "02-003-002-23", "02-003-001-25", "02-003-002-0", 
+            "02-003-001-26"
+        ];
+
+        const container = document.getElementById('gridContainer');
+        const countdownBtn = document.getElementById('countdownBtn');
+        const statusText = document.getElementById('statusText');
+
+        function buatNomorAcak() {
+            const digit1 = String(Math.floor(Math.random() * 99)).padStart(2, '0');
+            const digit2 = String(Math.floor(Math.random() * 999)).padStart(3, '0');
+            const digit3 = String(Math.floor(Math.random() * 999)).padStart(3, '0');
+            const digit4 = Math.floor(Math.random() * 30);
+            return `${digit1}-${digit2}-${digit3}-${digit4}`;
+        }
+
+        // Inisialisasi tampilan awal kartu
+        nomorPeserta.forEach((_, index) => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.id = `card-${index}`;
+            card.innerText = "??-???-???-?";
+            container.appendChild(card);
+        });
+
+        // Fungsi Hitungan Mundur Otomatis setelah halaman terbuka
+        let hitungan = 10;
+        statusText.innerText = "Mempersiapkan data kelulusan...";
+
+        const intervalCountdown = setInterval(() => {
+            hitungan--;
+            if (hitungan > 0) {
+                countdownBtn.innerText = `Mulai dalam ${hitungan}`;
+            } else {
+                clearInterval(intervalCountdown);
+                countdownBtn.innerText = "PROSES PENGUMUMAN...";
+                countdownBtn.classList.add('active');
+                statusText.innerText = "Mengacak nomor peserta...";
+                startReveal(); // Menjalankan animasi acak otomatis
+            }
+        }, 1000); // Berkurang setiap 1 detik
+
+        function startReveal() {
+            nomorPeserta.forEach((nomorAsli, index) => {
+                const card = document.getElementById(`card-${index}`);
+                card.classList.add('shuffling');
+
+                const intervalAcak = setInterval(() => {
+                    card.innerText = buatNomorAcak();
+                }, 80);
+
+                const durasiAcak = 2000 + (index * 100); 
+
+                setTimeout(() => {
+                    clearInterval(intervalAcak);
+                    card.classList.remove('shuffling');
+                    card.classList.add('revealed');
+                    card.innerText = nomorAsli;
+
+                    // Jika kartu terakhir selesai diproses
+                    if (index === nomorPeserta.length - 1) {
+                        countdownBtn.innerText = "PENGUMUMAN SELESAI";
+                        statusText.innerText = "Selamat kepada peserta yang dinyatakan LULUS!";
+                    }
+                }, durasiAcak);
+            });
+        }
+    </script>
+</body>
+</html>
